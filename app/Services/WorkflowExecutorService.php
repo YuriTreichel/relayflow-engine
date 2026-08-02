@@ -4,80 +4,85 @@ namespace App\Services;
 
 use App\Models\ExecutionLog;
 use App\Models\Workflow;
-use App\Models\WorkflowStep;
-use App\Services\WorkflowActions\ConditionAction;
-use App\Services\WorkflowActions\HttpRequestAction;
-use Illuminate\Support\Facades\Log;
+use App\Services\WorkflowActions\ActionFactory;
 use Throwable;
 
 class WorkflowExecutorService
 {
-    public function execute(Workflow $workflow, array $payload = []): ExecutionLog
+    public function execute(Workflow $workflow, array $payload): ExecutionLog
     {
-        $executionLog = ExecutionLog::create([
+        $log = ExecutionLog::create([
             'workflow_id' => $workflow->id,
-            'status' => 'processing',
             'input_payload' => $payload,
+            'status' => 'pending',
+            'output_payload' => [],
         ]);
 
+        $stepsList = $workflow->steps()->orderBy('order', 'asc')->get();
+
+        if ($stepsList->isEmpty()) {
+            $log->update([
+                'status' => 'failed',
+                'error_message' => 'Nenhum passo cadastrado para este workflow.',
+            ]);
+            return $log;
+        }
+
+        $stepsById = $stepsList->keyBy('id');
+        $currentStep = $stepsList->first();
+        $currentPayload = $payload;
+        $visitedSteps = [];
+
         try {
-            $steps = $workflow->steps()->orderBy('order')->get();
-            $currentPayload = $payload;
+            while ($currentStep) {
+                if (in_array($currentStep->id, $visitedSteps)) {
+                    break;
+                }
+                $visitedSteps[] = $currentStep->id;
 
-            foreach ($steps as $step) {
-                $executionLog->update([
-                    'workflow_step_id' => $step->id,
-                ]);
+                $action = ActionFactory::make($currentStep->type);
 
-                $currentPayload = $this->executeStep($step, $currentPayload);
+                try {
+                    $currentPayload = $action->handle($currentStep, $currentPayload);
+
+                    // Se passou com sucesso:
+                    if ($currentStep->next_step_id) {
+                        $currentStep = $stepsById->get($currentStep->next_step_id);
+                    } else {
+                        // Se não tem próximo passo explícito, segue a ordem linear apenas se não for um desvio final
+                        $currentStep = $stepsList->where('order', '>', $currentStep->order)->first();
+                    }
+                } catch (Throwable $stepException) {
+                    // Se falhou mas tem bifurcação de falha (on_failure_step_id)
+                    if ($currentStep->on_failure_step_id) {
+                        // AQUI ESTÁ O SEGREDO: Gravamos explicitamente o status 'failed_branch' e o erro
+                        $currentPayload['steps']['step_' . $currentStep->id] = [
+                            'status' => 'failed_branch',
+                            'error' => $stepException->getMessage(),
+                        ];
+
+                        // Redireciona para o passo de falha
+                        $currentStep = $stepsById->get($currentStep->on_failure_step_id);
+                    } else {
+                        // Sem tratamento de falha, estoura a exceção para falhar o workflow
+                        throw $stepException;
+                    }
+                }
             }
 
-            $executionLog->update([
+            $log->update([
                 'status' => 'completed',
                 'output_payload' => $currentPayload,
             ]);
 
         } catch (Throwable $e) {
-            Log::error("Erro na execução do Workflow #{$workflow->id}: " . $e->getMessage());
-
-            $executionLog->update([
+            $log->update([
                 'status' => 'failed',
                 'error_message' => $e->getMessage(),
+                'output_payload' => $currentPayload,
             ]);
         }
 
-        return $executionLog;
-    }
-
-    private function executeStep(WorkflowStep $step, array $payload): array
-    {
-        // Mapa de tipos de passos para suas respectivas classes de ação
-        $actions = [
-            'http_request' => HttpRequestAction::class,
-            'condition'    => ConditionAction::class,
-        ];
-
-        // Se o tipo do passo estiver no nosso mapa, resolvemos via Container do Laravel
-        if (array_key_exists($step->type, $actions)) {
-            $actionInstance = app($actions[$step->type]);
-            return $actionInstance->handle($step, $payload);
-        }
-
-        // Lógicas legadas/simples de fallback
-        switch ($step->type) {
-            case 'action':
-                $payload['processed_by_step_' . $step->id] = true;
-                break;
-
-            case 'log':
-                Log::info("Passo [{$step->name}] executado no fluxo com payload: ", $payload);
-                break;
-
-            default:
-                Log::warning("Tipo de passo desconhecido: {$step->type}");
-                break;
-        }
-
-        return $payload;
+        return $log;
     }
 }

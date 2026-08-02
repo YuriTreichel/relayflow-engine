@@ -18,7 +18,7 @@ it('executes a workflow with condition and http request steps', function () {
     ]);
 
     // Passo 1: Condicional (Se amount > 50)
-    WorkflowStep::create([
+    $stepCondition = WorkflowStep::create([
         'workflow_id' => $workflow->id,
         'name' => 'Verificar Valor',
         'type' => 'condition',
@@ -27,7 +27,7 @@ it('executes a workflow with condition and http request steps', function () {
     ]);
 
     // Passo 2: Disparo HTTP
-    WorkflowStep::create([
+    $stepHttp = WorkflowStep::create([
         'workflow_id' => $workflow->id,
         'name' => 'Notificar API',
         'type' => 'http_request',
@@ -42,8 +42,8 @@ it('executes a workflow with condition and http request steps', function () {
 
     // 4. Validações
     expect($log->status)->toBe('completed');
-    expect($log->output_payload)->toHaveKey('conditions_passed');
-    expect($log->output_payload)->toHaveKey('http_responses');
+    expect(data_get($log->output_payload, 'steps.step_' . $stepCondition->id . '.status'))->toBe('passed');
+    expect(data_get($log->output_payload, 'steps.step_' . $stepHttp->id . '.output'))->toBe(['success' => true]);
 
     // Garante que o HTTP Client do Laravel recebeu o disparo POST
     Http::assertSent(function ($request) {
