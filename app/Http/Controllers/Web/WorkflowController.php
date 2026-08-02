@@ -9,12 +9,22 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\DB;
+use App\Models\ExecutionLog;
+use App\Jobs\ExecuteWorkflowJob;
 
 class WorkflowController extends Controller
 {
     public function create(): Response
     {
         return Inertia::render('Workflows/Create');
+    }
+
+    public function replay(ExecutionLog $log): RedirectResponse
+    {
+        // Reenvia o payload original registrado na falha para a fila novamente
+        ExecuteWorkflowJob::dispatch($log->workflow, $log->input_payload);
+
+        return redirect()->back()->with('message', "Re-execução do Workflow #{$log->workflow_id} enviada para a fila!");
     }
 
     public function store(Request $request): RedirectResponse

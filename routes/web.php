@@ -22,6 +22,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/workflows/create', [WorkflowController::class, 'create'])->name('workflows.create');
     Route::post('/workflows', [WorkflowController::class, 'store'])->name('workflows.store');
+
+    Route::post('/logs/{log}/replay', [WorkflowController::class, 'replay'])->name('logs.replay');
 });
 
 require __DIR__ . '/auth.php';

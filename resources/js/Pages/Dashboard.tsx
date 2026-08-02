@@ -1,5 +1,5 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, router } from "@inertiajs/react";
 
 export default function Dashboard({ auth, stats, workflows, recentLogs }) {
     return (
@@ -154,7 +154,9 @@ export default function Dashboard({ auth, stats, workflows, recentLogs }) {
                                                     ).toLocaleString("pt-BR")}
                                                 </p>
                                             </div>
-                                            <div>
+
+                                            {/* Status e Ação de Replay */}
+                                            <div className="flex items-center space-x-2">
                                                 <span
                                                     className={`px-2 py-1 rounded-full text-xs font-semibold ${
                                                         log.status ===
@@ -168,6 +170,24 @@ export default function Dashboard({ auth, stats, workflows, recentLogs }) {
                                                 >
                                                     {log.status}
                                                 </span>
+
+                                                {/* Botão de Replay exibido apenas quando houver falha */}
+                                                {log.status === "failed" && (
+                                                    <button
+                                                        onClick={() =>
+                                                            router.post(
+                                                                route(
+                                                                    "logs.replay",
+                                                                    log.id,
+                                                                ),
+                                                            )
+                                                        }
+                                                        className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium rounded transition flex items-center gap-1 shadow-sm"
+                                                        title="Re-executar Payload"
+                                                    >
+                                                        🔄 Replay
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     ))
