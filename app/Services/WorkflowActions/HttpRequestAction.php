@@ -3,34 +3,40 @@
 namespace App\Services\WorkflowActions;
 
 use App\Models\WorkflowStep;
+use App\Services\VariableInterpolatorService;
 use Illuminate\Support\Facades\Http;
 use Exception;
 
 class HttpRequestAction implements ActionInterface
 {
+    public function __construct(
+        private VariableInterpolatorService $interpolator
+    ) {}
+
     public function handle(WorkflowStep $step, array $payload): array
     {
-        // O campo 'config' do step guardará as informações de URL e método HTTP
-        // Exemplo de config: ['url' => 'https://api.exemplo.com/webhook', 'method' => 'POST']
-        $config = $step->config ?? [];
+        // Interpola a configuração do step com base nos dados que estão transitando no payload
+        $config = $this->interpolator->interpolate($step->config ?? [], $payload);
+
         $url = $config['url'] ?? null;
         $method = strtoupper($config['method'] ?? 'POST');
+        $body = $config['body'] ?? $payload;
 
         if (!$url) {
             throw new Exception("Passo [{$step->name}]: URL não configurada para a ação HTTP.");
         }
 
-        // Executa a requisição externa via Laravel HTTP Client
         $response = Http::send($method, $url, [
-            'json' => $payload,
+            'json' => $body,
         ]);
 
         if ($response->failed()) {
             throw new Exception("Passo [{$step->name}]: Falha na requisição HTTP externa com status {$response->status()}.");
         }
 
-        // Adiciona a resposta da API externa ao payload do fluxo
-        $payload['http_responses']['step_' . $step->id] = $response->json();
+        $payload['steps']['step_' . $step->id] = [
+            'output' => $response->json(),
+        ];
 
         return $payload;
     }

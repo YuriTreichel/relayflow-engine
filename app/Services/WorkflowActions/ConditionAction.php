@@ -3,18 +3,23 @@
 namespace App\Services\WorkflowActions;
 
 use App\Models\WorkflowStep;
+use App\Services\VariableInterpolatorService;
 use Exception;
 
 class ConditionAction implements ActionInterface
 {
+    public function __construct(
+        private VariableInterpolatorService $interpolator
+    ) {}
+
     public function handle(WorkflowStep $step, array $payload): array
     {
-        // Exemplo de config: ['field' => 'amount', 'operator' => '>', 'value' => 100]
         $config = $step->config ?? [];
         $field = $config['field'] ?? null;
         $operator = $config['operator'] ?? '==';
-        $targetValue = $config['value'] ?? null;
-
+        
+        // Permite usar {{ order.total }} no valor de comparação também
+        $targetValue = $this->interpolator->interpolate($config['value'] ?? null, $payload);
         $currentValue = data_get($payload, $field);
 
         $passed = match ($operator) {
@@ -28,10 +33,10 @@ class ConditionAction implements ActionInterface
         };
 
         if (!$passed) {
-            throw new Exception("Condição interrompida no passo [{$step->name}]: {$field} ({$currentValue}) não é {$operator} {$targetValue}.");
+            throw new Exception("Condição interrompida no passo [{$step->name}]: {$field} ({$currentValue}) não atendeu ao critério {$operator} {$targetValue}.");
         }
 
-        $payload['conditions_passed']['step_' . $step->id] = true;
+        $payload['steps']['step_' . $step->id] = ['status' => 'passed'];
 
         return $payload;
     }
