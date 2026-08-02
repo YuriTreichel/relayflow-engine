@@ -1,58 +1,148 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# ⚡ RelayFlow Engine
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+[![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com/)
+[![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)](https://www.rabbitmq.com/)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+[![Pest PHP](https://img.shields.io/badge/Pest_PHP-00D2B8?style=for-the-badge&logo=pest&logoColor=white)](https://pestphp.com/)
 
-## About Laravel
+> **Engine de Execução de Workflows e Automações de Nível Enterprise.**
+>
+> O **RelayFlow Engine** é um sistema distribuído de alta performance projetado para orquestração de fluxos assíncronos, ramificações condicionais não-lineares (DAG), resiliência contra falhas de rede e comunicação segura via Webhooks.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📌 Visão Geral da Arquitetura
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+O RelayFlow resolve o desafio de integrar e automatizar processos complexos entre microsserviços e APIs externas com **garantia de entrega**, **auditoria completa** e **isolamento contra falhas catastróficas**.
 
-## Learning Laravel
+    [ Webhook Client ] ──( HMAC SHA-256 + Rate Limit )──> [ RelayFlow Engine ]
+                                                                 │
+                                                        (Dispatch Job Async)
+                                                                 ▼
+    [ Dead Letter Queue ] ◄──( Retries & Backoff )──── [ RabbitMQ Queue ]
+             │                                                   │
+       (Replay Button)                                     (Worker Exec)
+             └───────────────────────────────────────────────────► [ Workflow Executor (DAG) ]
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 🛠️ Tecnologias e Decisões de Arquitetura
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+| Tecnologia / Conceito | Aplicação no Projeto | Benefício Chave |
+| :--- | :--- | :--- |
+| **Laravel 11 + Inertia.js (React)** | Core do Backend e Dashboard SSR | Separação clara entre regra de negócio e UI fluida sem chamadas manuais de REST/Fetch no frontend. |
+| **RabbitMQ** | Fila distribuída de mensageria | Processamento assíncrono de workflows, liberando respostas de Webhook com tempo `< 50ms`. |
+| **Redis** | Rate Limiting e Cache de Estados | Proteção contra ataques de negação de serviço (DDoS) e throttling configurável por tenant. |
+| **DAG (Directed Acyclic Graph)** | Estrutura de navegação por ponteiros (`next_step_id` / `on_failure_step_id`) | Suporte a fluxos complexos com árvores de decisão, desvios e tratamento nativo de exceções em nós. |
+| **HMAC SHA-256** | Middleware de Validação de Assinatura | Garantia de integridade e não-repúdio na recepção de Webhooks externos. |
+| **Pest PHP** | Suíte de Testes Automatizados de Integração | Cobertura rigorosa dos cenários de borda, resiliência de filas e bifurcações da engine. |
 
-## Agentic Development
+---
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## 🔥 Principais Diferenciais Técnicos
 
-```bash
-composer require laravel/boost --dev
+### 🔒 1. Segurança Enterprise em Webhooks
+* **Autenticação HMAC:** Toda requisição de webhook valida a assinatura do payload usando chave secreta do tenant (`X-RelayFlow-Signature`).
+* **Proteção contra Replay Attack:** Rejeita requisições expiradas baseadas no cabeçalho temporal `X-RelayFlow-Timestamp`.
+* **Rate Limiting Inteligente:** Limitação de requisições por segundo utilizando Redis (`HTTP 429 Too Many Requests`).
 
-php artisan boost:install
-```
+### 🧩 2. Motor de Mapeamento e Interpolação Dinâmica
+* Suporte nativo a interpolação por regex em tempo de execução:
+  `{{ customer.email }}` ou encadeamento entre etapas `{{ steps.step_1.output.token }}`.
+* Tratamento seguro para arrays aninhados e JSONs complexos via *Dot Notation*.
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### ⚡ 3. Resiliência, Dead Letter Queue (DLQ) & Replay
+* **Exponential Backoff:** Retentativas de execução em falhas com intervalos crescentes (ex: 5s, 15s, 45s) para mitigar instabilidade em APIs terceiras.
+* **Quarentena (DLQ):** Workflows que esgotam as tentativas são isolados sem perda de dados para análise de causa raiz.
+* **Botão de Replay UI:** Re-injeção idempotente do payload original diretamente a partir do painel no dashboard para requisições com falha.
 
-## Contributing
+### 🌿 4. Processamento Não-Linear (DAG)
+* Em vez de uma esteira simples e linear, o RelayFlow executa **árvores de decisão**:
+  * **Se a condição passar (`True`):** O motor segue pelo nó `next_step_id`.
+  * **Se a condição falhar (`False`):** O motor captura o desvio e navega pelo nó `on_failure_step_id` sem interromper o workflow.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## 📂 Estrutura do Projeto
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+    app/
+    ├── Http/
+    │   └── Middlewares/
+    │       ├── ValidateHmacSignature.php        # Validação de integridade HMAC
+    │       └── RateLimitWorkflowExecution.php   # Throttling via Redis
+    ├── Jobs/
+    │   └── ExecuteWorkflowJob.php              # Worker desacoplado com Backoff Exponencial
+    ├── Models/
+    │   ├── Workflow.php                        # Definição do Grafo
+    │   └── WorkflowStep.php                    # Nós da DAG com ponteiros dinâmicos
+    └── Services/
+        ├── WorkflowExecutorService.php         # Motor principal de navegação da DAG
+        ├── VariableInterpolatorService.php     # Resolvedor de Expressões Regex/Dot Notation
+        └── WorkflowActions/
+            ├── ActionFactory.php               # Design Pattern Factory para Ações
+            ├── ConditionAction.php             # Nó de Decisão / Avaliador Lógico
+            ├── HttpRequestAction.php           # Nó de Integração HTTP Externa
+            └── LogAction.php                   # Nó de Registro e Auditoria
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 🧪 Testes Automatizados
 
-## License
+A aplicação conta com suíte de testes de integração via **Pest PHP**:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+    # Executar todos os testes da aplicação
+    php artisan test
+
+    # Executar testes da engine de grafos (DAG)
+    php artisan test --filter=DagWorkflowBranchingTest
+
+---
+
+## 🚀 Como Rodar o Projeto Localmente
+
+### Pré-requisitos
+* PHP 8.2+
+* Composer
+* Node.js (18+) e NPM
+* Docker e Docker Compose (para RabbitMQ e Redis)
+
+### Passo a Passo
+
+1. **Clonar o Repositório:**
+       git clone https://github.com/seu-usuario/relayflow-engine.git
+       cd relayflow-engine
+
+2. **Instalar Dependências:**
+       composer install
+       npm install
+
+3. **Subir Infraestrutura com Docker (RabbitMQ & Redis):**
+       docker-compose up -d
+
+4. **Configurar Ambiente:**
+       cp .env.example .env
+       php artisan key:generate
+
+5. **Executar Migrações:**
+       php artisan migrate
+
+6. **Iniciar Serviços:**
+       # Terminal 1: Servidor Web
+       php artisan serve
+
+       # Terminal 2: Worker de Fila (RabbitMQ)
+       php artisan queue:work
+
+       # Terminal 3: Build de Ativos Frontend
+       npm run dev
+
+---
+
+## ✉️ Contato
+
+Desenvolvido com foco em alta performance e arquitetura de software limpa.
+
+* **GitHub:** https://github.com/YuriTreichel/
+* **LinkedIn:** https://www.linkedin.com/in/yuri-treichel-fernandes/
