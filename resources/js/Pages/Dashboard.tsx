@@ -1,198 +1,230 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
 
-export default function Dashboard({ auth, stats, workflows, recentLogs }) {
+interface Workflow {
+    id: number;
+    name: string;
+    steps_count: number;
+    status: 'active' | 'draft';
+}
+
+interface Stats {
+    total_workflows: number;
+    active_workflows: number;
+    completed_runs: number;
+    failed_runs: number;
+}
+
+interface Log {
+    id: number;
+    workflow_id: number;
+    status: 'completed' | 'failed' | 'pending' | 'running';
+    created_at: string;
+    workflow?: {
+        name: string;
+    };
+}
+
+interface Props {
+    auth: {
+        user: {
+            name: string;
+            email: string;
+        };
+    };
+    stats: Stats;
+    workflows: Workflow[];
+    recentLogs: Log[];
+}
+
+export default function Dashboard({ auth, stats, workflows, recentLogs }: Props) {
     return (
         <AuthenticatedLayout
-            user={auth.user}
             header={
-                <h2 className="font-semibold text-xl text-gray-800 leading-tight">
-                    Dashboard - RelayFlow Engine
+                <h2 className="font-display font-semibold text-xl text-white leading-tight">
+                    Visão Geral
                 </h2>
             }
         >
             <Head title="Dashboard" />
 
-            <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold text-gray-800">
+            <div className="space-y-8">
+                {/* Header Section */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h3 className="font-display text-2xl font-bold text-white tracking-tight">
                             Seus Fluxos de Automação
                         </h3>
-                        <Link
-                            href={route("workflows.create")}
-                            className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700"
-                        >
-                            + Novo Workflow
-                        </Link>
+                        <p className="text-slate-400 text-sm mt-1">
+                            Monitore a integridade e as execuções dos seus pipelines.
+                        </p>
                     </div>
-                    {/* CARDS DE MÉTRICAS */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-indigo-500">
-                            <div className="text-sm font-medium text-gray-500">
-                                Total de Workflows
-                            </div>
-                            <div className="mt-1 text-3xl font-semibold text-gray-900">
-                                {stats.total_workflows}
-                            </div>
-                        </div>
+                    <Link
+                        href={route("workflows.create")}
+                        className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-semibold rounded-lg transition-all duration-150 shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 cursor-pointer"
+                    >
+                        + Novo Workflow
+                    </Link>
+                </div>
 
-                        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-green-500">
-                            <div className="text-sm font-medium text-gray-500">
-                                Workflows Ativos
-                            </div>
-                            <div className="mt-1 text-3xl font-semibold text-gray-900">
-                                {stats.active_workflows}
-                            </div>
-                        </div>
-
-                        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-blue-500">
-                            <div className="text-sm font-medium text-gray-500">
-                                Execuções Concluídas
-                            </div>
-                            <div className="mt-1 text-3xl font-semibold text-gray-900">
-                                {stats.completed_runs}
-                            </div>
-                        </div>
-
-                        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 border-l-4 border-red-500">
-                            <div className="text-sm font-medium text-gray-500">
-                                Falhas / Erros
-                            </div>
-                            <div className="mt-1 text-3xl font-semibold text-gray-900">
-                                {stats.failed_runs}
-                            </div>
-                        </div>
+                {/* METRICS CARDS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Card 1 */}
+                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl flex flex-col justify-between relative overflow-hidden group">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            Total de Workflows
+                        </span>
+                        <span className="mt-2 text-3xl font-display font-bold text-white">
+                            {stats.total_workflows}
+                        </span>
                     </div>
 
-                    {/* TABELA DE WORKFLOWS E FEED DE EXECUÇÕES */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Lista de Workflows */}
-                        <div className="bg-white shadow-sm sm:rounded-lg p-6">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                                Seus Fluxos de Automação
-                            </h3>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm text-gray-600">
-                                    <thead className="bg-gray-50 text-gray-700 uppercase text-xs">
+                    {/* Card 2 */}
+                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl flex flex-col justify-between relative overflow-hidden group">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-teal-500"></div>
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            Workflows Ativos
+                        </span>
+                        <span className="mt-2 text-3xl font-display font-bold text-white">
+                            {stats.active_workflows}
+                        </span>
+                    </div>
+
+                    {/* Card 3 */}
+                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl flex flex-col justify-between relative overflow-hidden group">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-sky-500"></div>
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            Execuções Concluídas
+                        </span>
+                        <span className="mt-2 text-3xl font-display font-bold text-white">
+                            {stats.completed_runs}
+                        </span>
+                    </div>
+
+                    {/* Card 4 */}
+                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl flex flex-col justify-between relative overflow-hidden group">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            Falhas / Erros
+                        </span>
+                        <span className="mt-2 text-3xl font-display font-bold text-white">
+                            {stats.failed_runs}
+                        </span>
+                    </div>
+                </div>
+
+                {/* TABLES AND RECENTS */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Lista de Workflows */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 lg:col-span-2">
+                        <h3 className="font-display text-lg font-bold text-white mb-4">
+                            Automações Cadastradas
+                        </h3>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm text-slate-300">
+                                <thead className="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-wider">
+                                    <tr>
+                                        <th className="pb-3 pr-4 font-semibold">Nome</th>
+                                        <th className="pb-3 px-4 font-semibold">Etapas</th>
+                                        <th className="pb-3 pl-4 font-semibold text-right">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/50">
+                                    {workflows.length === 0 ? (
                                         <tr>
-                                            <th className="py-3 px-4">Nome</th>
-                                            <th className="py-3 px-4">
-                                                Passos
-                                            </th>
-                                            <th className="py-3 px-4">
-                                                Status
-                                            </th>
+                                            <td
+                                                colSpan={3}
+                                                className="py-8 text-center text-slate-500"
+                                            >
+                                                Nenhum workflow cadastrado.
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {workflows.length === 0 ? (
-                                            <tr>
-                                                <td
-                                                    colSpan="3"
-                                                    className="py-4 text-center text-gray-400"
-                                                >
-                                                    Nenhum workflow cadastrado.
+                                    ) : (
+                                        workflows.map((wf) => (
+                                            <tr key={wf.id} className="hover:bg-slate-800/20 transition-colors duration-150">
+                                                <td className="py-4 pr-4 font-semibold text-white">
+                                                    {wf.name}
+                                                </td>
+                                                <td className="py-4 px-4 text-slate-400">
+                                                    {wf.steps_count} {wf.steps_count === 1 ? 'etapa' : 'etapas'}
+                                                </td>
+                                                <td className="py-4 pl-4 text-right">
+                                                    <span
+                                                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                                            wf.status === "active"
+                                                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                                                : "bg-slate-800 text-slate-400 border border-slate-700/50"
+                                                        }`}
+                                                    >
+                                                        {wf.status === "active" ? "Ativo" : "Rascunho"}
+                                                    </span>
                                                 </td>
                                             </tr>
-                                        ) : (
-                                            workflows.map((wf) => (
-                                                <tr key={wf.id}>
-                                                    <td className="py-3 px-4 font-medium text-gray-900">
-                                                        {wf.name}
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        {wf.steps_count} etapas
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <span
-                                                            className={`px-2 py-1 rounded text-xs font-semibold ${
-                                                                wf.status ===
-                                                                "active"
-                                                                    ? "bg-green-100 text-green-700"
-                                                                    : "bg-gray-100 text-gray-600"
-                                                            }`}
-                                                        >
-                                                            {wf.status}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
+                    </div>
 
-                        {/* Execuções Recentes (Logs) */}
-                        <div className="bg-white shadow-sm sm:rounded-lg p-6">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                                Execuções Recentes
-                            </h3>
-                            <div className="space-y-3 max-h-96 overflow-y-auto">
-                                {recentLogs.length === 0 ? (
-                                    <p className="text-gray-400 text-sm">
-                                        Nenhum histórico de execução até o
-                                        momento.
-                                    </p>
-                                ) : (
-                                    recentLogs.map((log) => (
-                                        <div
-                                            key={log.id}
-                                            className="p-3 rounded-lg border border-gray-100 bg-gray-50 flex items-center justify-between"
-                                        >
+                    {/* Execuções Recentes */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                        <h3 className="font-display text-lg font-bold text-white mb-4">
+                            Atividade Recente
+                        </h3>
+                        <div className="space-y-4 max-h-[28rem] overflow-y-auto pr-1">
+                            {recentLogs.length === 0 ? (
+                                <p className="text-slate-500 text-sm py-4 text-center">
+                                    Nenhum histórico de execução.
+                                </p>
+                            ) : (
+                                recentLogs.map((log) => (
+                                    <div
+                                        key={log.id}
+                                        className="p-4 rounded-lg border border-slate-800/80 bg-slate-950/40 flex flex-col gap-3 hover:border-slate-700 transition-colors duration-150"
+                                    >
+                                        <div className="flex items-start justify-between">
                                             <div>
-                                                <p className="text-sm font-medium text-gray-800">
+                                                <p className="text-sm font-semibold text-white">
                                                     {log.workflow
                                                         ? log.workflow.name
                                                         : `Workflow #${log.workflow_id}`}
                                                 </p>
-                                                <p className="text-xs text-gray-500">
-                                                    ID da Execução: #{log.id} •{" "}
-                                                    {new Date(
-                                                        log.created_at,
-                                                    ).toLocaleString("pt-BR")}
+                                                <p className="text-xs text-slate-500 mt-0.5">
+                                                    Execução #{log.id} • {new Date(log.created_at).toLocaleString("pt-BR")}
                                                 </p>
                                             </div>
-
-                                            {/* Status e Ação de Replay */}
-                                            <div className="flex items-center space-x-2">
-                                                <span
-                                                    className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                                        log.status ===
-                                                        "completed"
-                                                            ? "bg-green-100 text-green-700"
-                                                            : log.status ===
-                                                                "failed"
-                                                              ? "bg-red-100 text-red-700"
-                                                              : "bg-yellow-100 text-yellow-700"
-                                                    }`}
-                                                >
-                                                    {log.status}
-                                                </span>
-
-                                                {/* Botão de Replay exibido apenas quando houver falha */}
-                                                {log.status === "failed" && (
-                                                    <button
-                                                        onClick={() =>
-                                                            router.post(
-                                                                route(
-                                                                    "logs.replay",
-                                                                    log.id,
-                                                                ),
-                                                            )
-                                                        }
-                                                        className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium rounded transition flex items-center gap-1 shadow-sm"
-                                                        title="Re-executar Payload"
-                                                    >
-                                                        🔄 Replay
-                                                    </button>
-                                                )}
-                                            </div>
+                                            <span
+                                                className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                                    log.status === "completed"
+                                                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                                        : log.status === "failed"
+                                                            ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                                            : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                                }`}
+                                            >
+                                                {log.status}
+                                            </span>
                                         </div>
-                                    ))
-                                )}
-                            </div>
+
+                                        {/* Action Button displayed on failure */}
+                                        {log.status === "failed" && (
+                                            <button
+                                                onClick={() =>
+                                                    router.post(
+                                                        route("logs.replay", log.id)
+                                                    )
+                                                }
+                                                className="w-full mt-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-semibold rounded border border-slate-700 hover:border-slate-600 transition duration-150 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                                                title="Re-executar Payload"
+                                            >
+                                                <span>🔄</span> Re-executar Passo (Replay)
+                                            </button>
+                                        )}
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
