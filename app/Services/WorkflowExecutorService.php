@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\ExecutionLog;
 use App\Models\Workflow;
 use App\Models\WorkflowStep;
+use App\Services\WorkflowActions\ConditionAction;
+use App\Services\WorkflowActions\HttpRequestAction;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -12,7 +14,6 @@ class WorkflowExecutorService
 {
     public function execute(Workflow $workflow, array $payload = []): ExecutionLog
     {
-        // 1. Cria o log inicial de execução
         $executionLog = ExecutionLog::create([
             'workflow_id' => $workflow->id,
             'status' => 'processing',
@@ -20,29 +21,23 @@ class WorkflowExecutorService
         ]);
 
         try {
-            // 2. Busca todos os passos do fluxo ordenados
-            $steps = $workflow->steps;
-
+            $steps = $workflow->steps()->orderBy('order')->get();
             $currentPayload = $payload;
 
             foreach ($steps as $step) {
-                // Atualiza o log informando qual passo está rodando
                 $executionLog->update([
                     'workflow_step_id' => $step->id,
                 ]);
 
-                // Executa a lógica do passo específico
                 $currentPayload = $this->executeStep($step, $currentPayload);
             }
 
-            // 3. Marca como concluído com sucesso
             $executionLog->update([
                 'status' => 'completed',
                 'output_payload' => $currentPayload,
             ]);
 
         } catch (Throwable $e) {
-            // 4. Em caso de erro, grava no log a falha
             Log::error("Erro na execução do Workflow #{$workflow->id}: " . $e->getMessage());
 
             $executionLog->update([
@@ -56,10 +51,21 @@ class WorkflowExecutorService
 
     private function executeStep(WorkflowStep $step, array $payload): array
     {
-        // Simulador simples de execução baseada no tipo de passo
+        // Mapa de tipos de passos para suas respectivas classes de ação
+        $actions = [
+            'http_request' => HttpRequestAction::class,
+            'condition'    => ConditionAction::class,
+        ];
+
+        // Se o tipo do passo estiver no nosso mapa, resolvemos via Container do Laravel
+        if (array_key_exists($step->type, $actions)) {
+            $actionInstance = app($actions[$step->type]);
+            return $actionInstance->handle($step, $payload);
+        }
+
+        // Lógicas legadas/simples de fallback
         switch ($step->type) {
             case 'action':
-                // Exemplo: Simula processamento de dados do payload
                 $payload['processed_by_step_' . $step->id] = true;
                 break;
 
