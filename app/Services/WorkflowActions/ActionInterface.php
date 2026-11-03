@@ -7,11 +7,11 @@ use App\Models\WorkflowStep;
 interface ActionInterface
 {
     /**
-     * Executa a ação do passo do workflow.
+     * Executes the workflow step action.
      * 
-     * @param WorkflowStep $step Configurações do passo.
-     * @param array $payload Dados recebidos do passo anterior.
-     * @return array Retorna o payload modificado ou enriquecido.
+     * @param WorkflowStep $step Step configuration.
+     * @param array $payload Data received from previous step.
+     * @return array Returns modified or enriched payload.
      */
     public function handle(WorkflowStep $step, array $payload): array;
 }

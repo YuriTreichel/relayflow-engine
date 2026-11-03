@@ -5,20 +5,20 @@ use App\Models\Workflow;
 use Illuminate\Support\Facades\Queue;
 
 it('triggers an active workflow via webhook and dispatches job', function () {
-    // 1. Simula a fila para interceptar a Job sem precisar rodar o RabbitMQ no teste
+    // 1. Fake the queue to intercept job without RabbitMQ running
     Queue::fake();
 
-    // 2. Cria um fluxo ativo no banco de dados SQLite de teste
+    // 2. Create active workflow in test SQLite database
     $workflow = Workflow::create([
-        'name' => 'Fluxo de Venda Aprovada',
+        'name' => 'Approved Sale Workflow',
         'status' => 'active',
     ]);
 
     $data = [
         'event' => 'order.paid',
         'customer' => [
-            'email' => 'cliente@email.com',
-            'name' => 'João Silva'
+            'email' => 'customer@email.com',
+            'name' => 'John Doe'
         ]
     ];
     $timestamp = time();
@@ -26,20 +26,20 @@ it('triggers an active workflow via webhook and dispatches job', function () {
     $secret = config('app.key');
     $signature = hash_hmac('sha256', $timestamp . '.' . $payload, $secret);
 
-    // 3. Simula uma requisição HTTP POST externa enviando um payload JSON com as assinaturas HMAC
+    // 3. Simulate inbound external POST request with HMAC signatures
     $response = $this->withHeaders([
         'X-RelayFlow-Signature' => $signature,
         'X-RelayFlow-Timestamp' => (string) $timestamp,
     ])->postJson("/api/v1/workflows/{$workflow->id}/execute", $data);
 
-    // 4. Verifica se a resposta HTTP foi 202 (Accepted)
+    // 4. Assert HTTP status 202 (Accepted)
     $response->assertStatus(202)
              ->assertJson([
-                 'message' => 'Workflow adicionado à fila com sucesso!',
+                 'message' => 'Workflow queued successfully!',
                  'workflow_id' => $workflow->id,
               ]);
 
-    // 5. Garante que a Job foi despachada para a fila com o workflow correto
+    // 5. Assert job was pushed to queue with expected payload
     Queue::assertPushed(ExecuteWorkflowJob::class, function ($job) use ($workflow) {
         return $job->workflow->id === $workflow->id 
             && $job->payload['event'] === 'order.paid';
@@ -47,9 +47,9 @@ it('triggers an active workflow via webhook and dispatches job', function () {
 });
 
 it('rejects a webhook if the workflow is not active', function () {
-    // Cria um fluxo que está em modo rascunho (draft)
+    // Create workflow in draft mode
     $workflow = Workflow::create([
-        'name' => 'Fluxo Inativo',
+        'name' => 'Draft Workflow',
         'status' => 'draft',
     ]);
 
@@ -66,6 +66,9 @@ it('rejects a webhook if the workflow is not active', function () {
         'X-RelayFlow-Timestamp' => (string) $timestamp,
     ])->postJson("/api/v1/workflows/{$workflow->id}/execute", $data);
 
-    // Deve retornar erro 422 impedindo a execução
-    $response->assertStatus(422);
+    // Must return 422 preventing execution
+    $response->assertStatus(422)
+             ->assertJson([
+                 'message' => 'This workflow is not active.'
+             ]);
 });

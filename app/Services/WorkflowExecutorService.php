@@ -23,7 +23,7 @@ class WorkflowExecutorService
         if ($stepsList->isEmpty()) {
             $log->update([
                 'status' => 'failed',
-                'error_message' => 'Nenhum passo cadastrado para este workflow.',
+                'error_message' => 'No steps configured for this workflow.',
             ]);
             return $log;
         }
@@ -45,26 +45,25 @@ class WorkflowExecutorService
                 try {
                     $currentPayload = $action->handle($currentStep, $currentPayload);
 
-                    // Se passou com sucesso:
+                    // If succeeded:
                     if ($currentStep->next_step_id) {
                         $currentStep = $stepsById->get($currentStep->next_step_id);
                     } else {
-                        // Se não tem próximo passo explícito, segue a ordem linear apenas se não for um desvio final
+                        // If no explicit next step, follow linear order
                         $currentStep = $stepsList->where('order', '>', $currentStep->order)->first();
                     }
                 } catch (Throwable $stepException) {
-                    // Se falhou mas tem bifurcação de falha (on_failure_step_id)
+                    // If failed but has failure branch (on_failure_step_id)
                     if ($currentStep->on_failure_step_id) {
-                        // AQUI ESTÁ O SEGREDO: Gravamos explicitamente o status 'failed_branch' e o erro
                         $currentPayload['steps']['step_' . $currentStep->id] = [
                             'status' => 'failed_branch',
                             'error' => $stepException->getMessage(),
                         ];
 
-                        // Redireciona para o passo de falha
+                        // Route to failure step
                         $currentStep = $stepsById->get($currentStep->on_failure_step_id);
                     } else {
-                        // Sem tratamento de falha, estoura a exceção para falhar o workflow
+                        // Without failure handling, escalate exception
                         throw $stepException;
                     }
                 }

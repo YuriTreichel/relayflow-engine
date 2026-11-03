@@ -13,15 +13,15 @@ class RateLimitWorkflowExecution
     {
         $workflowId = $request->route('workflow');
 
-        // Normaliza para obter a ID caso a rota injete a Model Workflow
+        // Normalize ID if route model binding injected Workflow instance
         if (is_object($workflowId)) {
             $workflowId = $workflowId->id;
         }
 
-        // Define uma chave única de rate limit por workflow (ex: workflow_execution:1)
+        // Unique rate limiting key per workflow (e.g., workflow_execution:1)
         $key = 'workflow_execution:' . $workflowId;
 
-        // Limite de 10 requisições por minuto por Workflow
+        // Max 10 requests per minute per workflow
         $maxAttempts = 10;
         $decaySeconds = 60;
 
@@ -29,7 +29,7 @@ class RateLimitWorkflowExecution
             $seconds = RateLimiter::availableIn($key);
 
             return response()->json([
-                'message' => 'Limite de requisições excedido (Rate Limit). Tente novamente em breve.',
+                'message' => 'Too many requests (Rate limit exceeded). Please try again soon.',
                 'retry_after_seconds' => $seconds,
             ], 429, [
                 'Retry-After' => $seconds,

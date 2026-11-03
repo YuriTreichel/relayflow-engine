@@ -6,22 +6,22 @@ use App\Services\WorkflowExecutorService;
 use Illuminate\Support\Facades\Http;
 
 it('interpolates nested variables and chains output between steps', function () {
-    // 1. Simula a chamada da API do Passo 1 (Retorna um Token)
+    // 1. Mock API calls for step 1 auth and step 2 CRM
     Http::fake([
         'api.auth.com/login' => Http::response(['token' => 'bearer_token_xyz123'], 200),
         'api.crm.com/leads'  => Http::response(['success' => true], 200),
     ]);
 
-    // 2. Cria o Workflow
+    // 2. Create Workflow
     $workflow = Workflow::create([
-        'name' => 'Fluxo com Variáveis Dinâmicas',
+        'name' => 'Dynamic Variables Workflow',
         'status' => 'active',
     ]);
 
-    // Passo 1: Autenticar e obter Token
+    // Step 1: Authenticate and retrieve token
     $step1 = WorkflowStep::create([
         'workflow_id' => $workflow->id,
-        'name' => 'Obter Token API',
+        'name' => 'Get Auth Token',
         'type' => 'http_request',
         'config' => [
             'url' => 'https://api.auth.com/login',
@@ -30,10 +30,10 @@ it('interpolates nested variables and chains output between steps', function () 
         'order' => 1,
     ]);
 
-    // Passo 2: Enviar Lead para o CRM usando o e-mail do payload de entrada e o token gerado pelo Passo 1!
+    // Step 2: Send lead using input payload customer email and Step 1 token
     WorkflowStep::create([
         'workflow_id' => $workflow->id,
-        'name' => 'Enviar Lead CRM',
+        'name' => 'Send CRM Lead',
         'type' => 'http_request',
         'config' => [
             'url' => 'https://api.crm.com/leads',
@@ -48,23 +48,23 @@ it('interpolates nested variables and chains output between steps', function () 
 
     $executor = new WorkflowExecutorService();
 
-    // 3. Executa o fluxo com payload complexo aninhado
+    // 3. Execute workflow with nested input payload
     $payload = [
         'customer' => [
-            'name' => 'Carlos Silva',
-            'email' => 'carlos@empresa.com',
+            'name' => 'Charles Smith',
+            'email' => 'charles@company.com',
         ],
     ];
 
     $log = $executor->execute($workflow, $payload);
 
-    // 4. Assertivas
+    // 4. Assertions
     expect($log->status)->toBe('completed');
 
-    // Garante que o Passo 2 interpolou perfeitamente {{ customer.email }} e {{ steps.step_1.output.token }}
+    // Verify Step 2 interpolated {{ customer.email }} and {{ steps.step_1.output.token }}
     Http::assertSent(function ($request) {
         if ($request->url() === 'https://api.crm.com/leads') {
-            return $request['email'] === 'carlos@empresa.com' &&
+            return $request['email'] === 'charles@company.com' &&
                    $request['auth_token'] === 'bearer_token_xyz123';
         }
         return true;

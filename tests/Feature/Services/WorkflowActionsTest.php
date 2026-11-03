@@ -6,60 +6,60 @@ use App\Services\WorkflowExecutorService;
 use Illuminate\Support\Facades\Http;
 
 it('executes a workflow with condition and http request steps', function () {
-    // 1. Simula a resposta HTTP externa para não fazer chamadas de verdade na rede
+    // 1. Mock external HTTP response
     Http::fake([
-        'api.exemplo.com/*' => Http::response(['success' => true], 200),
+        'api.example.com/*' => Http::response(['success' => true], 200),
     ]);
 
-    // 2. Criar Workflow
+    // 2. Create Workflow
     $workflow = Workflow::create([
-        'name' => 'Fluxo de Teste de Ações',
+        'name' => 'Actions Test Workflow',
         'status' => 'active',
     ]);
 
-    // Passo 1: Condicional (Se amount > 50)
+    // Step 1: Condition (amount > 50)
     $stepCondition = WorkflowStep::create([
         'workflow_id' => $workflow->id,
-        'name' => 'Verificar Valor',
+        'name' => 'Check Amount',
         'type' => 'condition',
         'config' => ['field' => 'amount', 'operator' => '>', 'value' => 50],
         'order' => 1,
     ]);
 
-    // Passo 2: Disparo HTTP
+    // Step 2: HTTP Dispatch
     $stepHttp = WorkflowStep::create([
         'workflow_id' => $workflow->id,
-        'name' => 'Notificar API',
+        'name' => 'Notify API',
         'type' => 'http_request',
-        'config' => ['url' => 'https://api.exemplo.com/webhook', 'method' => 'POST'],
+        'config' => ['url' => 'https://api.example.com/webhook', 'method' => 'POST'],
         'order' => 2,
     ]);
 
     $executor = new WorkflowExecutorService();
 
-    // 3. Executar com um payload válido (amount = 100)
+    // 3. Execute with valid payload (amount = 100)
     $log = $executor->execute($workflow, ['amount' => 100]);
 
-    // 4. Validações
+    // 4. Assertions
     expect($log->status)->toBe('completed');
     expect(data_get($log->output_payload, 'steps.step_' . $stepCondition->id . '.status'))->toBe('passed');
     expect(data_get($log->output_payload, 'steps.step_' . $stepHttp->id . '.output'))->toBe(['success' => true]);
 
-    // Garante que o HTTP Client do Laravel recebeu o disparo POST
+    // Ensure Laravel HTTP client dispatched POST request
     Http::assertSent(function ($request) {
-        return $request->url() == 'https://api.exemplo.com/webhook' && $request['amount'] == 100;
+        return $request->url() == 'https://api.example.com/webhook' && $request['amount'] == 100;
     });
 });
 
 it('fails execution when condition step is not met', function () {
     $workflow = Workflow::create([
-        'name' => 'Fluxo com Condição Falha',
+        'name' => 'Failing Condition Workflow',
         'status' => 'active',
     ]);
 
     WorkflowStep::create([
         'workflow_id' => $workflow->id,
-        'name' => 'Verificar Valor Mínimo',
+        'name' => 'Check Minimum Amount',
         'type' => 'condition',
         'config' => ['field' => 'amount', 'operator' => '>', 'value' => 100],
         'order' => 1,
@@ -67,9 +67,9 @@ it('fails execution when condition step is not met', function () {
 
     $executor = new WorkflowExecutorService();
 
-    // Executa com amount = 20 (menor que 100, deve falhar)
+    // Execute with amount = 20 (less than 100, should fail)
     $log = $executor->execute($workflow, ['amount' => 20]);
 
     expect($log->status)->toBe('failed');
-    expect($log->error_message)->toContain('Condição interrompida');
+    expect($log->error_message)->toContain('Condition interrupted');
 });

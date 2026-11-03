@@ -9,7 +9,7 @@ beforeEach(function () {
     RateLimiter::clear('workflow_execution:1');
 
     $this->workflow = Workflow::create([
-        'name' => 'Fluxo com Rate Limit',
+        'name' => 'Rate Limited Workflow',
         'status' => 'active',
     ]);
 });
@@ -26,13 +26,13 @@ it('allows up to 10 requests per minute and blocks the 11th with 429 Too Many Re
         'X-RelayFlow-Timestamp' => (string) $timestamp,
     ];
 
-    // Dispara 10 requisições seguidas (devem ser aceitas com 202)
+    // Trigger 10 consecutive requests (should be accepted with 202)
     for ($i = 1; $i <= 10; $i++) {
         $response = $this->withHeaders($headers)->postJson("/api/v1/workflows/{$this->workflow->id}/execute", $data);
         $response->assertStatus(202);
     }
 
-    // A 11ª requisição deve ser bloqueada pelo Rate Limiter
+    // 11th request must be blocked by rate limiter
     $response11 = $this->withHeaders($headers)->postJson("/api/v1/workflows/{$this->workflow->id}/execute", $data);
 
     $response11->assertStatus(429)

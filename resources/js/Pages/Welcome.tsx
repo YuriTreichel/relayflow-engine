@@ -8,7 +8,7 @@ export default function Welcome({
 }: PageProps<{ laravelVersion: string; phpVersion: string }>) {
     return (
         <>
-            <Head title="RelayFlow Engine - Automação de Workflows em Tempo Real" />
+            <Head title="RelayFlow Engine - Real-Time Workflow Automation" />
             <div className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-900">
                 {/* Header */}
                 <header className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center border-b border-slate-800">
@@ -41,7 +41,7 @@ export default function Welcome({
                                     href={route('register')}
                                     className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all duration-200 shadow-md shadow-emerald-500/10 cursor-pointer"
                                 >
-                                    Cadastre-se
+                                    Register
                                 </Link>
                             </>
                         )}
@@ -51,15 +51,15 @@ export default function Welcome({
                 {/* Hero Section */}
                 <main className="max-w-7xl mx-auto px-6 py-20 lg:py-32 flex flex-col items-center text-center">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-8">
-                        ⚡ Nova Versão: DAG Workflow Branching
+                        ⚡ New Release: DAG Workflow Branching
                     </div>
 
                     <h1 className="font-display font-bold text-5xl md:text-7xl text-white tracking-tight leading-none max-w-4xl">
-                        Orquestre fluxos de trabalho com facilidade e precisão
+                        Orchestrate workflows with ease and precision
                     </h1>
 
                     <p className="mt-6 text-lg md:text-xl text-slate-400 max-w-2xl leading-relaxed">
-                        Crie e gerencie integrações em DAG (Directed Acyclic Graph) de alta performance. Execute condicionais inteligentes, manipule webhooks com segurança e visualize logs em tempo real.
+                        Design and manage high-performance Directed Acyclic Graph (DAG) integrations. Execute smart conditional branches, handle webhooks securely, and monitor real-time execution logs.
                     </p>
 
                     <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -68,7 +68,7 @@ export default function Welcome({
                                 href={route('dashboard')}
                                 className="w-full sm:w-auto px-8 py-4 text-base font-semibold rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all duration-200 shadow-lg shadow-emerald-500/20 cursor-pointer"
                             >
-                                Ir para o Painel
+                                Go to Dashboard
                             </Link>
                         ) : (
                             <>
@@ -76,13 +76,13 @@ export default function Welcome({
                                     href={route('register')}
                                     className="w-full sm:w-auto px-8 py-4 text-base font-semibold rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all duration-200 shadow-lg shadow-emerald-500/20 cursor-pointer"
                                 >
-                                    Começar Grátis
+                                    Get Started
                                 </Link>
                                 <Link
                                     href={route('login')}
                                     className="w-full sm:w-auto px-8 py-4 text-base font-semibold rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 text-white transition-all duration-200 cursor-pointer"
                                 >
-                                    Acessar Conta
+                                    Sign In
                                 </Link>
                             </>
                         )}
@@ -97,9 +97,9 @@ export default function Welcome({
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
                             </div>
-                            <h3 className="font-display font-semibold text-xl text-white">Execuções em DAG</h3>
+                            <h3 className="font-display font-semibold text-xl text-white">DAG Executions</h3>
                             <p className="mt-3 text-slate-400 leading-relaxed text-sm">
-                                Suporte completo para fluxos acíclicos direcionados, permitindo condicionais paralelos e encadeamento robusto de tarefas sem loops.
+                                Full support for directed acyclic graphs, enabling parallel conditionals and robust task chaining without circular dependencies.
                             </p>
                         </div>
 
@@ -110,9 +110,9 @@ export default function Welcome({
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                 </svg>
                             </div>
-                            <h3 className="font-display font-semibold text-xl text-white">Segurança Avançada</h3>
+                            <h3 className="font-display font-semibold text-xl text-white">Advanced Security</h3>
                             <p className="mt-3 text-slate-400 leading-relaxed text-sm">
-                                Assinatura HMAC integrada, rate limiting em tempo real e proteção contra ataques de replay para blindar seus webhooks.
+                                Built-in HMAC signatures, real-time rate limiting, and replay attack protection to shield your webhook endpoints.
                             </p>
                         </div>
 
@@ -123,9 +123,9 @@ export default function Welcome({
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17m0 0V5" />
                                 </svg>
                             </div>
-                            <h3 className="font-display font-semibold text-xl text-white">Replay & Logs Recorrentes</h3>
+                            <h3 className="font-display font-semibold text-xl text-white">Replay & Audit Logs</h3>
                             <p className="mt-3 text-slate-400 leading-relaxed text-sm">
-                                Acompanhe o histórico de execuções com logs de passos detalhados e funcionalidade de re-execução em um clique para falhas de payloads.
+                                Inspect full execution histories with granular step logs and one-click replay capabilities for failed payloads.
                             </p>
                         </div>
                     </div>
@@ -133,7 +133,7 @@ export default function Welcome({
 
                 {/* Footer */}
                 <footer className="max-w-7xl mx-auto px-6 py-16 text-center text-xs text-slate-500 border-t border-slate-800/50 mt-20">
-                    RelayFlow Engine • Desenvolvido com Laravel v{laravelVersion} (PHP v{phpVersion})
+                    RelayFlow Engine • Built with Laravel v{laravelVersion} (PHP v{phpVersion})
                 </footer>
             </div>
         </>

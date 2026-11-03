@@ -13,7 +13,7 @@ class ActionFactory
             'condition'    => app(ConditionAction::class),
             'log'          => app(LogAction::class),
             'action'       => app(ActionAction::class),
-            default        => throw new Exception("Tipo de ação não suportado: {$type}"),
+            default        => throw new Exception("Unsupported action type: {$type}"),
         };
     }
 }

@@ -12,22 +12,22 @@ class WebhookTriggerController extends Controller
 {
     public function trigger(Request $request, Workflow $workflow): JsonResponse
     {
-        // 1. Verifica se o fluxo está ativo para receber disparos
+        // 1. Verify if workflow is active to receive triggers
         if ($workflow->status !== 'active') {
             return response()->json([
-                'message' => 'Este workflow não está ativo.',
+                'message' => 'This workflow is not active.',
             ], 422);
         }
 
-        // 2. Extrai todo o JSON enviado no corpo da requisição
+        // 2. Extract JSON payload from incoming request body
         $payload = $request->all();
 
-        // 3. Joga o processamento do fluxo na fila do RabbitMQ
+        // 3. Dispatch workflow execution to the message queue
         ExecuteWorkflowJob::dispatch($workflow, $payload);
 
-        // 4. Retorna resposta 202 (Accepted) dizendo que a requisição foi aceita para processamento
+        // 4. Return 202 (Accepted) response indicating successful queueing
         return response()->json([
-            'message' => 'Workflow adicionado à fila com sucesso!',
+            'message' => 'Workflow queued successfully!',
             'workflow_id' => $workflow->id,
         ], 202);
     }

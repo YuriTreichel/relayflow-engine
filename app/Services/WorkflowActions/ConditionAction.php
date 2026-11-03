@@ -18,7 +18,7 @@ class ConditionAction implements ActionInterface
         $field = $config['field'] ?? null;
         $operator = $config['operator'] ?? '==';
         
-        // Permite usar {{ order.total }} no valor de comparação também
+        // Allows using {{ order.total }} in comparison value as well
         $targetValue = $this->interpolator->interpolate($config['value'] ?? null, $payload);
         $currentValue = data_get($payload, $field);
 
@@ -33,7 +33,7 @@ class ConditionAction implements ActionInterface
         };
 
         if (!$passed) {
-            throw new Exception("Condição interrompida no passo [{$step->name}]: {$field} ({$currentValue}) não atendeu ao critério {$operator} {$targetValue}.");
+            throw new Exception("Condition interrupted at step [{$step->name}]: {$field} ({$currentValue}) failed criterion {$operator} {$targetValue}.");
         }
 
         $payload['steps']['step_' . $step->id] = ['status' => 'passed'];

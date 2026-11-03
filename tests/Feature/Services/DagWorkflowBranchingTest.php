@@ -6,32 +6,32 @@ use App\Services\WorkflowExecutorService;
 
 it('executes alternative branch (on_failure_step_id) when a condition fails', function () {
     $workflow = Workflow::create([
-        'name' => 'Workflow com Bifurcação DAG',
+        'name' => 'DAG Branching Workflow',
         'status' => 'active',
     ]);
 
-    // Passo 2 (Caminho VIP)
+    // Step 2 (VIP Route)
     $stepHighValue = WorkflowStep::create([
         'workflow_id' => $workflow->id,
-        'name' => 'Log Pedido VIP / Alto Valor',
+        'name' => 'Log High-Value Order',
         'type' => 'log',
-        'config' => ['message' => 'Processando pedido VIP!'],
+        'config' => ['message' => 'Processing high-value VIP order!'],
         'order' => 2,
     ]);
 
-    // Passo 3 (Caminho Padrão)
+    // Step 3 (Standard Route)
     $stepLowValue = WorkflowStep::create([
         'workflow_id' => $workflow->id,
-        'name' => 'Log Pedido de Baixo Valor',
+        'name' => 'Log Low-Value Order',
         'type' => 'log',
-        'config' => ['message' => 'Processando pedido padrão'],
+        'config' => ['message' => 'Processing standard order'],
         'order' => 3,
     ]);
 
-    // Passo 1 (Condição Raiz - order 1)
+    // Step 1 (Root Condition - order 1)
     $stepCondition = WorkflowStep::create([
         'workflow_id' => $workflow->id,
-        'name' => 'Validar Valor do Pedido',
+        'name' => 'Validate Order Amount',
         'type' => 'condition',
         'config' => [
             'field' => 'amount',
@@ -45,14 +45,14 @@ it('executes alternative branch (on_failure_step_id) when a condition fails', fu
 
     $executor = new WorkflowExecutorService();
 
-    // Disparo 1: amount = 150 (FALHA na condição -> Desvia para o Passo 3)
+    // Trigger 1: amount = 150 (Condition fails -> routes to Step 3)
     $payloadLow = ['amount' => 150];
     $logLow = $executor->execute($workflow, $payloadLow);
 
     expect($logLow->status)->toBe('completed');
     expect(data_get($logLow->output_payload, 'steps.step_' . $stepCondition->id . '.status'))->toBe('failed_branch');
 
-    // Disparo 2: amount = 800 (SUCESSO na condição -> Vai para o Passo 2)
+    // Trigger 2: amount = 800 (Condition passes -> routes to Step 2)
     $payloadHigh = ['amount' => 800];
     $logHigh = $executor->execute($workflow, $payloadHigh);
 

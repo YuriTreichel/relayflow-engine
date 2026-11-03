@@ -15,7 +15,7 @@ class HttpRequestAction implements ActionInterface
 
     public function handle(WorkflowStep $step, array $payload): array
     {
-        // Interpola a configuração do step com base nos dados que estão transitando no payload
+        // Interpolate step config based on payload data
         $config = $this->interpolator->interpolate($step->config ?? [], $payload);
 
         $url = $config['url'] ?? null;
@@ -23,7 +23,7 @@ class HttpRequestAction implements ActionInterface
         $body = $config['body'] ?? $payload;
 
         if (!$url) {
-            throw new Exception("Passo [{$step->name}]: URL não configurada para a ação HTTP.");
+            throw new Exception("Step [{$step->name}]: URL not configured for HTTP action.");
         }
 
         $response = Http::send($method, $url, [
@@ -31,7 +31,7 @@ class HttpRequestAction implements ActionInterface
         ]);
 
         if ($response->failed()) {
-            throw new Exception("Passo [{$step->name}]: Falha na requisição HTTP externa com status {$response->status()}.");
+            throw new Exception("Step [{$step->name}]: External HTTP request failed with status {$response->status()}.");
         }
 
         $payload['steps']['step_' . $step->id] = [

@@ -23,6 +23,6 @@ class ProcessOrderJob implements ShouldQueue
      */
     public function handle(): void
     {
-        Log::info('🔥 [RabbitMQ] Job ProcessOrderJob executada com sucesso!');
+        Log::info('🔥 [RabbitMQ] ProcessOrderJob executed successfully!');
     }
 }

@@ -75,7 +75,7 @@ export default function Authenticated({
 
                                     <Dropdown.Content contentClasses="py-1 bg-slate-900 border border-slate-800 shadow-xl">
                                         <Dropdown.Link href={route('profile.edit')}>
-                                            Perfil
+                                            Profile
                                         </Dropdown.Link>
                                         <Dropdown.Link
                                             href={route('logout')}
@@ -83,7 +83,7 @@ export default function Authenticated({
                                             as="button"
                                             className="text-red-400 hover:text-red-300"
                                         >
-                                            Sair
+                                            Log Out
                                         </Dropdown.Link>
                                     </Dropdown.Content>
                                 </Dropdown>
@@ -137,7 +137,7 @@ export default function Authenticated({
                                 href={route('profile.edit')}
                                 className="block py-2 text-base text-slate-400 hover:text-white cursor-pointer"
                             >
-                                Perfil
+                                Profile
                             </Link>
                             <Link
                                 method="post"
@@ -145,7 +145,7 @@ export default function Authenticated({
                                 as="button"
                                 className="block w-full text-left py-2 text-base text-red-400 hover:text-red-300 cursor-pointer"
                             >
-                                Sair
+                                Log Out
                             </Link>
                         </div>
                     </div>

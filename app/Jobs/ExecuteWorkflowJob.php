@@ -16,12 +16,12 @@ class ExecuteWorkflowJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * Número máximo de tentativas da Job.
+     * Maximum retry attempts for this job.
      */
     public int $tries = 3;
 
     /**
-     * Backoff exponencial: aguarda 5s na 1ª falha, 15s na 2ª.
+     * Exponential backoff: waits 5s on 1st failure, 15s on 2nd failure.
      */
     public function backoff(): array
     {
@@ -37,19 +37,19 @@ class ExecuteWorkflowJob implements ShouldQueue
     {
         $log = $executor->execute($this->workflow, $this->payload);
 
-        // Se a execução falhou no ExecutorService, lança uma exceção para o sistema de filas do Laravel contabilizar a tentativa
+        // If execution failed in ExecutorService, throw exception so Laravel queue system records attempt
         if ($log->status === 'failed') {
-            throw new \Exception("Falha ao processar Workflow #{$this->workflow->id}: {$log->error_message}");
+            throw new \Exception("Failed to process Workflow #{$this->workflow->id}: {$log->error_message}");
         }
     }
 
     /**
-     * Método chamado quando a Job estoura todas as tentativas (DLQ).
+     * Called when the job exhausts all retries (routed to DLQ).
      */
     public function failed(Throwable $exception): void
     {
         \Illuminate\Support\Facades\Log::channel('single')->error(
-            "CRÍTICO: Workflow #{$this->workflow->id} estourou todas as {$this->tries} tentativas e foi para a DLQ. Erro: {$exception->getMessage()}"
+            "CRITICAL: Workflow #{$this->workflow->id} exhausted all {$this->tries} attempts and was sent to DLQ. Error: {$exception->getMessage()}"
         );
     }
 }

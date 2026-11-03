@@ -21,10 +21,10 @@ class WorkflowController extends Controller
 
     public function replay(ExecutionLog $log): RedirectResponse
     {
-        // Reenvia o payload original registrado na falha para a fila novamente
+        // Re-dispatch original input payload from failed log to queue
         ExecuteWorkflowJob::dispatch($log->workflow, $log->input_payload);
 
-        return redirect()->back()->with('message', "Re-execução do Workflow #{$log->workflow_id} enviada para a fila!");
+        return redirect()->back()->with('message', "Workflow #{$log->workflow_id} replay sent to queue!");
     }
 
     public function store(Request $request): RedirectResponse
@@ -39,13 +39,13 @@ class WorkflowController extends Controller
         ]);
 
         DB::transaction(function () use ($validated) {
-            // 1. Cria o Workflow
+            // 1. Create Workflow
             $workflow = Workflow::create([
                 'name' => $validated['name'],
                 'status' => $validated['status'],
             ]);
 
-            // 2. Cria os Steps associados
+            // 2. Create Associated Steps
             if (!empty($validated['steps'])) {
                 foreach ($validated['steps'] as $index => $stepData) {
                     $workflow->steps()->create([
@@ -58,6 +58,6 @@ class WorkflowController extends Controller
             }
         });
 
-        return redirect()->route('dashboard')->with('message', 'Workflow criado com sucesso!');
+        return redirect()->route('dashboard')->with('message', 'Workflow created successfully!');
     }
 }

@@ -7,16 +7,17 @@
 [![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
 [![Pest PHP](https://img.shields.io/badge/Pest_PHP-00D2B8?style=for-the-badge&logo=pest&logoColor=white)](https://pestphp.com/)
 
-> **Engine de Execução de Workflows e Automações de Nível Enterprise.**
+> **Enterprise-Grade Workflow & Automation Execution Engine.**
 >
-> O **RelayFlow Engine** é um sistema distribuído de alta performance projetado para orquestração de fluxos assíncronos, ramificações condicionais não-lineares (DAG), resiliência contra falhas de rede e comunicação segura via Webhooks.
+> **RelayFlow Engine** is a high-performance distributed orchestration system designed for asynchronous workflows, non-linear conditional branching (DAG), network failure resilience, and secure webhook communication.
 
 ---
 
-## 📌 Visão Geral da Arquitetura
+## 📌 Architecture Overview
 
-O RelayFlow resolve o desafio de integrar e automatizar processos complexos entre microsserviços e APIs externas com **garantia de entrega**, **auditoria completa** e **isolamento contra falhas catastróficas**.
+RelayFlow solves the challenge of integrating and automating complex processes across microservices and external APIs with **guaranteed delivery**, **comprehensive auditing**, and **failure isolation**.
 
+```text
     [ Webhook Client ] ──( HMAC SHA-256 + Rate Limit )──> [ RelayFlow Engine ]
                                                                  │
                                                         (Dispatch Job Async)
@@ -25,124 +26,141 @@ O RelayFlow resolve o desafio de integrar e automatizar processos complexos entr
              │                                                   │
        (Replay Button)                                     (Worker Exec)
              └───────────────────────────────────────────────────► [ Workflow Executor (DAG) ]
+```
 
 ---
 
-## 🛠️ Tecnologias e Decisões de Arquitetura
+## 🛠️ Tech Stack & Architectural Decisions
 
-| Tecnologia / Conceito | Aplicação no Projeto | Benefício Chave |
+| Technology / Concept | Project Application | Key Benefit |
 | :--- | :--- | :--- |
-| **Laravel 11 + Inertia.js (React)** | Core do Backend e Dashboard SSR | Separação clara entre regra de negócio e UI fluida sem chamadas manuais de REST/Fetch no frontend. |
-| **RabbitMQ** | Fila distribuída de mensageria | Processamento assíncrono de workflows, liberando respostas de Webhook com tempo `< 50ms`. |
-| **Redis** | Rate Limiting e Cache de Estados | Proteção contra ataques de negação de serviço (DDoS) e throttling configurável por tenant. |
-| **DAG (Directed Acyclic Graph)** | Estrutura de navegação por ponteiros (`next_step_id` / `on_failure_step_id`) | Suporte a fluxos complexos com árvores de decisão, desvios e tratamento nativo de exceções em nós. |
-| **HMAC SHA-256** | Middleware de Validação de Assinatura | Garantia de integridade e não-repúdio na recepção de Webhooks externos. |
-| **Pest PHP** | Suíte de Testes Automatizados de Integração | Cobertura rigorosa dos cenários de borda, resiliência de filas e bifurcações da engine. |
+| **Laravel 11 + Inertia.js (React)** | Core Backend & SSR Dashboard | Clean separation of business logic and reactive UI without manual REST/Fetch boilerplate on the frontend. |
+| **RabbitMQ** | Distributed Message Queue | Asynchronous workflow execution, returning Webhook responses in `< 50ms`. |
+| **Redis** | Rate Limiting & State Caching | DDoS mitigation and configurable per-tenant request throttling. |
+| **DAG (Directed Acyclic Graph)** | Pointer-based navigation structure (`next_step_id` / `on_failure_step_id`) | Support for complex decision trees, fallback branches, and native exception handling per node. |
+| **HMAC SHA-256** | Signature Validation Middleware | Payload integrity and non-repudiation for incoming external Webhooks. |
+| **Pest PHP** | Automated Integration Test Suite | Rigorous edge-case coverage, queue resilience, and engine branching verification. |
 
 ---
 
-## 🔥 Principais Diferenciais Técnicos
+## 🔥 Key Technical Highlights
 
-### 🔒 1. Segurança Enterprise em Webhooks
-* **Autenticação HMAC:** Toda requisição de webhook valida a assinatura do payload usando chave secreta do tenant (`X-RelayFlow-Signature`).
-* **Proteção contra Replay Attack:** Rejeita requisições expiradas baseadas no cabeçalho temporal `X-RelayFlow-Timestamp`.
-* **Rate Limiting Inteligente:** Limitação de requisições por segundo utilizando Redis (`HTTP 429 Too Many Requests`).
+### 🔒 1. Enterprise Webhook Security
+* **HMAC Authentication:** Every incoming webhook request verifies payload authenticity using the tenant's secret key (`X-RelayFlow-Signature`).
+* **Replay Attack Protection:** Rejects expired requests using timestamp validation (`X-RelayFlow-Timestamp`).
+* **Smart Rate Limiting:** Enforces requests-per-minute limits backed by Redis (`HTTP 429 Too Many Requests`).
 
-### 🧩 2. Motor de Mapeamento e Interpolação Dinâmica
-* Suporte nativo a interpolação por regex em tempo de execução:
-  `{{ customer.email }}` ou encadeamento entre etapas `{{ steps.step_1.output.token }}`.
-* Tratamento seguro para arrays aninhados e JSONs complexos via *Dot Notation*.
+### 🧩 2. Dynamic Variable Mapping & Interpolation
+* Native runtime interpolation using regex:
+  `{{ customer.email }}` or step-to-step chaining `{{ steps.step_1.output.token }}`.
+* Safe evaluation of nested arrays and complex JSON objects via *Dot Notation*.
 
-### ⚡ 3. Resiliência, Dead Letter Queue (DLQ) & Replay
-* **Exponential Backoff:** Retentativas de execução em falhas com intervalos crescentes (ex: 5s, 15s, 45s) para mitigar instabilidade em APIs terceiras.
-* **Quarentena (DLQ):** Workflows que esgotam as tentativas são isolados sem perda de dados para análise de causa raiz.
-* **Botão de Replay UI:** Re-injeção idempotente do payload original diretamente a partir do painel no dashboard para requisições com falha.
+### ⚡ 3. Resilience, Dead Letter Queue (DLQ) & Replay
+* **Exponential Backoff:** Automated retry strategies with progressive intervals (e.g., 5s, 15s, 45s) to handle transient third-party API failures.
+* **Quarantine (DLQ):** Workflows exceeding retry thresholds are isolated without data loss for root-cause inspection.
+* **UI Replay:** Idempotent re-execution of the original payload directly from the dashboard for failed runs.
 
-### 🌿 4. Processamento Não-Linear (DAG)
-* Em vez de uma esteira simples e linear, o RelayFlow executa **árvores de decisão**:
-  * **Se a condição passar (`True`):** O motor segue pelo nó `next_step_id`.
-  * **Se a condição falhar (`False`):** O motor captura o desvio e navega pelo nó `on_failure_step_id` sem interromper o workflow.
-
----
-
-## 📂 Estrutura do Projeto
-
-    app/
-    ├── Http/
-    │   └── Middlewares/
-    │       ├── ValidateHmacSignature.php        # Validação de integridade HMAC
-    │       └── RateLimitWorkflowExecution.php   # Throttling via Redis
-    ├── Jobs/
-    │   └── ExecuteWorkflowJob.php              # Worker desacoplado com Backoff Exponencial
-    ├── Models/
-    │   ├── Workflow.php                        # Definição do Grafo
-    │   └── WorkflowStep.php                    # Nós da DAG com ponteiros dinâmicos
-    └── Services/
-        ├── WorkflowExecutorService.php         # Motor principal de navegação da DAG
-        ├── VariableInterpolatorService.php     # Resolvedor de Expressões Regex/Dot Notation
-        └── WorkflowActions/
-            ├── ActionFactory.php               # Design Pattern Factory para Ações
-            ├── ConditionAction.php             # Nó de Decisão / Avaliador Lógico
-            ├── HttpRequestAction.php           # Nó de Integração HTTP Externa
-            └── LogAction.php                   # Nó de Registro e Auditoria
+### 🌿 4. Non-Linear Execution (DAG)
+* Beyond linear pipelines, RelayFlow executes **decision trees**:
+  * **On Condition Met (`True`):** The engine continues through `next_step_id`.
+  * **On Condition Failure (`False`):** The engine catches the branching signal and routes through `on_failure_step_id` without breaking the workflow.
 
 ---
 
-## 🧪 Testes Automatizados
+## 📂 Project Structure
 
-A aplicação conta com suíte de testes de integração via **Pest PHP**:
-
-    # Executar todos os testes da aplicação
-    php artisan test
-
-    # Executar testes da engine de grafos (DAG)
-    php artisan test --filter=DagWorkflowBranchingTest
+```text
+app/
+├── Http/
+│   └── Middlewares/
+│       ├── ValidateHmacSignature.php        # HMAC integrity validation
+│       └── RateLimitWorkflowExecution.php   # Redis throttling
+├── Jobs/
+│   └── ExecuteWorkflowJob.php              # Decoupled worker with Exponential Backoff
+├── Models/
+│   ├── Workflow.php                        # Graph definition
+│   └── WorkflowStep.php                    # DAG nodes with dynamic pointer routing
+└── Services/
+    ├── WorkflowExecutorService.php         # Core DAG navigation engine
+    ├── VariableInterpolatorService.php     # Regex/Dot Notation expression resolver
+    └── WorkflowActions/
+        ├── ActionFactory.php               # Factory design pattern for action handlers
+        ├── ConditionAction.php             # Decision node / Logical evaluator
+        ├── HttpRequestAction.php           # Outbound HTTP integration node
+        └── LogAction.php                   # Audit & recording node
+```
 
 ---
 
-## 🚀 Como Rodar o Projeto Localmente
+## 🧪 Automated Testing
 
-### Pré-requisitos
+The project includes a comprehensive integration test suite built with **Pest PHP**:
+
+```bash
+# Run all application tests
+php artisan test
+
+# Run DAG workflow branching tests
+php artisan test --filter=DagWorkflowBranchingTest
+```
+
+---
+
+## 🚀 Getting Started Locally
+
+### Prerequisites
 * PHP 8.2+
 * Composer
-* Node.js (18+) e NPM
-* Docker e Docker Compose (para RabbitMQ e Redis)
+* Node.js (18+) & NPM
+* Docker & Docker Compose (for RabbitMQ & Redis)
 
-### Passo a Passo
+### Step-by-Step Setup
 
-1. **Clonar o Repositório:**
-       git clone https://github.com/seu-usuario/relayflow-engine.git
-       cd relayflow-engine
+1. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/YuriTreichel/relayflow-engine.git
+   cd relayflow-engine
+   ```
 
-2. **Instalar Dependências:**
-       composer install
-       npm install
+2. **Install Dependencies:**
+   ```bash
+   composer install
+   npm install
+   ```
 
-3. **Subir Infraestrutura com Docker (RabbitMQ & Redis):**
-       docker-compose up -d
+3. **Start Infrastructure with Docker (RabbitMQ & Redis):**
+   ```bash
+   docker-compose up -d
+   ```
 
-4. **Configurar Ambiente:**
-       cp .env.example .env
-       php artisan key:generate
+4. **Configure Environment:**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
 
-5. **Executar Migrações:**
-       php artisan migrate
+5. **Run Database Migrations:**
+   ```bash
+   php artisan migrate
+   ```
 
-6. **Iniciar Serviços:**
-       # Terminal 1: Servidor Web
-       php artisan serve
+6. **Start Services:**
+   ```bash
+   # Terminal 1: Web Server
+   php artisan serve
 
-       # Terminal 2: Worker de Fila (RabbitMQ)
-       php artisan queue:work
+   # Terminal 2: Queue Worker (RabbitMQ)
+   php artisan queue:work
 
-       # Terminal 3: Build de Ativos Frontend
-       npm run dev
+   # Terminal 3: Frontend Asset Server
+   npm run dev
+   ```
 
 ---
 
-## ✉️ Contato
+## ✉️ Author & Contact
 
-Desenvolvido com foco em alta performance e arquitetura de software limpa.
+Built with a focus on high performance, clean software architecture, and resilient distributed patterns.
 
 * **GitHub:** https://github.com/YuriTreichel/
 * **LinkedIn:** https://www.linkedin.com/in/yuri-treichel-fernandes/

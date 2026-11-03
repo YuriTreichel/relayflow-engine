@@ -10,34 +10,34 @@ class ValidateHmacSignature
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Verifica se o header de assinatura existe
+        // 1. Check if signature and timestamp headers exist
         $signature = $request->header('X-RelayFlow-Signature');
         $timestamp = $request->header('X-RelayFlow-Timestamp');
 
         if (!$signature || !$timestamp) {
             return response()->json([
-                'message' => 'Acesso negado. Headers de assinatura ausentes (X-RelayFlow-Signature / X-RelayFlow-Timestamp).'
+                'message' => 'Access denied. Missing signature headers (X-RelayFlow-Signature / X-RelayFlow-Timestamp).'
             ], 401);
         }
 
-        // 2. Proteção contra Replay Attack (Rejeita requisições com mais de 5 minutos de diferença)
+        // 2. Replay attack protection (Reject requests older than 5 minutes)
         if (abs(time() - (int)$timestamp) > 300) {
             return response()->json([
-                'message' => 'Requisição expirada (Possível Replay Attack).'
+                'message' => 'Request expired (Possible Replay Attack).'
             ], 403);
         }
 
-        // 3. Recupera a chave secreta (usando o APP_KEY do .env para este exemplo)
+        // 3. Retrieve secret key from configuration
         $secret = config('app.key');
 
-        // 4. Recalcula o HASH com base no Payload + Timestamp
+        // 4. Recalculate HMAC SHA-256 hash using timestamp + request payload
         $payloadToSign = $timestamp . '.' . $request->getContent();
         $expectedSignature = hash_hmac('sha256', $payloadToSign, $secret);
 
-        // 5. Comparação segura contra Timing Attacks
+        // 5. Constant-time comparison against timing attacks
         if (!hash_equals($expectedSignature, $signature)) {
             return response()->json([
-                'message' => 'Assinatura HMAC inválida. A requisição pode ter sido adulterada.'
+                'message' => 'Invalid HMAC signature. Request payload may have been tampered with.'
             ], 401);
         }
 
